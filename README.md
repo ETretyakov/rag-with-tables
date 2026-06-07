@@ -1,8 +1,8 @@
 # Table RAG
 
-RAG-система для табличных данных (CSV/XLSX). Извлекает таблицы, сохраняет их как Parquet в S3, индексирует чанки в Qdrant (hybrid dense+sparse search) и отвечает на вопросы через NL→SQL поверх DuckDB или синтез из текстовых чанков.
+A RAG system for tabular data (CSV/XLSX). Extracts tables, stores them as Parquet in S3, indexes chunks in Qdrant (hybrid dense+sparse search), and answers questions via NL→SQL over DuckDB or synthesis from text chunks.
 
-## Архитектура
+## Architecture
 
 ```
 POST /files  →  Island Detection  →  Schema Normalize  →  Parquet → S3
@@ -13,38 +13,38 @@ POST /query  →  Embed Query  →  Qdrant Hybrid Search
                                     └── text hits   →  Synthesize from chunks
 ```
 
-## Публикации
+## Publications
 
-Подробный разбор архитектуры — пайплайн загрузки данных и пайплайн обработки запросов со схемами:
+A detailed breakdown of the architecture — the ingestion pipeline and query pipeline with diagrams:
 
 - [Как научить LLM работать с таблицами (RU)](docs/publication-ru.md)
 - [Teaching LLMs to Work with Tables (EN)](docs/publication-en.md)
 
-## Быстрый старт
+## Quick Start
 
-### Требования
+### Requirements
 
 - Docker & Docker Compose
 - Go 1.22+
-- API-ключи: Anthropic (LLM) и VoyageAI (embeddings), либо локальный OpenAI-совместимый сервер
+- API keys: Anthropic (LLM) and VoyageAI (embeddings), or a local OpenAI-compatible server
 
-### 1. Запуск инфраструктуры
+### 1. Start infrastructure
 
 ```bash
 docker-compose up -d
 ```
 
-Поднимает: **Qdrant** (`:6333`) и **MinIO** (`:9000`, консоль `:9001`).
+Starts: **Qdrant** (`:6333`) and **MinIO** (`:9000`, console `:9001`).
 
-### 2. Конфигурация
+### 2. Configuration
 
-Скопируйте пример и заполните ключи:
+Copy the example and fill in the keys:
 
 ```bash
 cp .env.example .env
 ```
 
-Минимальный набор переменных:
+Minimum set of variables:
 
 ```env
 # LLM
@@ -71,7 +71,7 @@ QDRANT_PORT=6333
 QDRANT_COLLECTION=table-rags
 ```
 
-Для локальных моделей через Ollama/vLLM:
+For local models via Ollama/vLLM:
 
 ```env
 LLM_PROVIDER=openaicompat
@@ -84,13 +84,13 @@ EMBEDDING_OPENAICOMPAT_MODEL=nomic-embed-text
 EMBEDDING_DIMS=768
 ```
 
-### 3. Запуск сервиса
+### 3. Run the service
 
 ```bash
 go run ./cmd/server
 ```
 
-Или через Docker:
+Or via Docker:
 
 ```bash
 docker build -t table-rags .
@@ -101,71 +101,71 @@ Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ## API
 
-### Загрузка файла
+### Upload a file
 
 ```bash
 curl -X POST http://localhost:8080/files \
   -F "file=@data.xlsx"
 ```
 
-Ответ: `FileRecord` с `id`, `tables_found`, `chunks_count`, `s3_keys`, `tables`.
+Response: `FileRecord` with `id`, `tables_found`, `chunks_count`, `s3_keys`, `tables`.
 
-### Список файлов
+### List files
 
 ```bash
 curl http://localhost:8080/files
 ```
 
-### Схема таблиц файла
+### File table schema
 
 ```bash
 curl http://localhost:8080/files/{id}/schema
 ```
 
-### Удаление файла
+### Delete a file
 
 ```bash
 curl -X DELETE http://localhost:8080/files/{id}
 ```
 
-Удаляет данные из Qdrant и Parquet-файлы из S3.
+Removes data from Qdrant and Parquet files from S3.
 
-### Запрос (буферизованный)
+### Query (buffered)
 
 ```bash
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "Какова средняя выручка по регионам?", "top_k": 10}'
+  -d '{"query": "What is the average revenue by region?", "top_k": 10}'
 ```
 
-Ответ:
+Response:
 
 ```json
 {
-  "answer": "Средняя выручка по регионам...",
+  "answer": "Average revenue by region...",
   "sources": [{"source_file": "sales.xlsx", "s3_key": "...", "score": 0.92}],
   "sql_used": "SELECT region, AVG(revenue) FROM data GROUP BY region"
 }
 ```
 
-### Запрос (Server-Sent Events)
+### Query (Server-Sent Events)
 
 ```bash
 curl -X POST http://localhost:8080/query/stream \
   -H "Content-Type: application/json" \
-  -d '{"query": "Топ-5 продуктов по объёму продаж"}' \
+  -d '{"query": "Top 5 products by sales volume"}' \
   --no-buffer
 ```
 
-Формат событий:
+Event format:
 
 ```
-data: {"type":"token","content":"Топ-5"}
-data: {"type":"token","content":" продуктов..."}
+data: {"type":"token","content":"Top"}
+data: {"type":"token","content":" 5 products..."}
 data: {"type":"result","answer":"...","sources":[...],"sql_used":"..."}
 ```
 
-### Метрики
+### Metrics
 
 ```bash
 curl http://localhost:8080/metrics
@@ -179,32 +179,32 @@ curl http://localhost:8080/metrics
 }
 ```
 
-## Структура директорий
+## Directory Structure
 
 ```
-cmd/server/          — точка входа
+cmd/server/          — entry point
 internal/
   api/               — Huma + chi handlers (/files, /query, /query/stream, /metrics)
-  app/               — инициализация зависимостей, graceful shutdown
-  chunker/           — HYDE-генерация + row chunking
-  config/            — YAML + env конфигурация
+  app/               — dependency initialization, graceful shutdown
+  chunker/           — HYDE generation + row chunking
+  config/            — YAML + env configuration
   embedder/          — batch dense embedding + BM25 sparse
   ingest/            — CSV/XLSX reader, island detection, schema normalization
   metrics/           — in-process atomic counters
-  provider/          — LLM и embedding провайдеры (Anthropic, VoyageAI, OpenAI-compat)
+  provider/          — LLM and embedding providers (Anthropic, VoyageAI, OpenAI-compat)
   query/             — pipeline: search → NL→SQL / synthesis + SQL validation
   storage/
-    duckdb/          — Parquet→DuckDB loader с TTL-кэшем (read-only connections)
-    s3/              — MinIO/S3 клиент + каталог файлов
-  vectordb/qdrant/   — REST-клиент Qdrant (upsert, hybrid search, delete)
-docs/publication-ru.md — статья о системе (RU)
-docs/publication-en.md — статья о системе (EN)
+    duckdb/          — Parquet→DuckDB loader with TTL cache (read-only connections)
+    s3/              — MinIO/S3 client + file catalog
+  vectordb/qdrant/   — Qdrant REST client (upsert, hybrid search, delete)
+docs/publication-ru.md — article about the system (RU)
+docs/publication-en.md — article about the system (EN)
 docker-compose.yml   — Qdrant + MinIO
 ```
 
-## Безопасность DuckDB
+## DuckDB Security
 
-Все SQL-запросы, сгенерированные LLM, проходят два уровня защиты:
+All SQL queries generated by the LLM pass through two layers of protection:
 
-1. **Валидация** (`query.ValidateSQL`): только `SELECT`, блокируются `DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, `read_parquet`, `read_csv` и другие опасные конструкции.
-2. **Read-only соединение**: DuckDB открывается с `access_mode=read_only` — движок сам блокирует любые мутации на уровне транзакций.
+1. **Validation** (`query.ValidateSQL`): only `SELECT` is allowed; `DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, `read_parquet`, `read_csv`, and other dangerous constructs are blocked.
+2. **Read-only connection**: DuckDB is opened with `access_mode=read_only` — the engine itself blocks any mutations at the transaction level.
