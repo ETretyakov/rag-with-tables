@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Table RAG</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+
+    <!-- ── Main area ─────────────────────────────────── -->
+    <div class="main">
+      <header class="header">
+        <div class="logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="logo-svg">
+            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/>
+          </svg>
+          <span>Table RAG</span>
+        </div>
+        <button class="btn ghost" id="metricsBtn" onclick="toggleMetrics()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Метрики
+        </button>
+      </header>
+
+      <!-- Metrics bar -->
+      <div class="metrics-bar" id="metricsBar">
+        <div class="metric-card">
+          <div class="metric-value" id="m-files">—</div>
+          <div class="metric-label">Файлов</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-tables">—</div>
+          <div class="metric-label">Таблиц</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-chunks">—</div>
+          <div class="metric-label">Чанков</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-queries">—</div>
+          <div class="metric-label">Запросов</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-sql-path">—</div>
+          <div class="metric-label">SQL-путь</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-text-path">—</div>
+          <div class="metric-label">Текст-путь</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-cache-hits">—</div>
+          <div class="metric-label">Кеш DuckDB</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-avg-dur">—</div>
+          <div class="metric-label">Ср. запрос, мс</div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages" id="messages"></div>
+
+      <!-- Composer -->
+      <div class="composer">
+        <label class="upload-label" title="Загрузить CSV / XLSX">
+          <input type="file" id="fileInput" accept=".csv,.xlsx" onchange="uploadFile(this)" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </label>
+        <textarea
+          id="queryInput"
+          class="query-input"
+          placeholder="Задайте вопрос по данным… (Enter — отправить, Shift+Enter — новая строка)"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendQuery()" title="Отправить">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Sidebar ─────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <span class="sidebar-title">Документы</span>
+        <span class="badge" id="docCount">0</span>
+      </div>
+      <div id="docList" class="doc-list">
+        <div class="empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <p>Нет загруженных<br>документов</p>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Schema modal -->
+  <div class="modal-overlay" id="schemaOverlay" onclick="closeSchema()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="schemaTitle">Схема файла</h3>
+        <button class="close-btn" onclick="closeSchema()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="schemaBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
